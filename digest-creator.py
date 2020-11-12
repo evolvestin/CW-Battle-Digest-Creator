@@ -1,11 +1,10 @@
 import os
 import re
+import objects
 import _thread
 import requests
-import objects
 from time import sleep
 from bs4 import BeautifulSoup
-from objects import thread_exec as executive
 from objects import bold, code, italic, stamper, printer, html_link
 
 stamp1 = objects.time_now()
@@ -26,18 +25,20 @@ battle_emoji = {
     'успешно атаковали защитников': '⚔'
 }
 
-bot = objects.start_main_bot('non-async', os.environ['TOKEN'])
 start_search = objects.query('https://t.me/UsefullCWLinks/4?embed=1', r'CW3: (\d+) :CW3.mini: (\d+) :mini.d: (.*) :d')
+Auth = objects.AuthCentre(os.environ['TOKEN'])
+bot = Auth.start_main_bot('non-async')
+executive = Auth.thread_exec
 if start_search:
     main_post_id = int(start_search.group(1))
     mini_post_id = int(start_search.group(2))
-    last_date = start_search.group(3)
     objects.environmental_files(python=True)
-    objects.start_message(os.environ['TOKEN'], stamp1)
+    last_date = start_search.group(3)
+    Auth.start_message(stamp1)
 else:
     main_post_id = 0
     last_date = '\nОшибка с нахождением номера поста. ' + objects.bold('Бот выключен')
-    objects.start_message(os.environ['TOKEN'], stamp1, last_date)
+    Auth.start_message(stamp1, last_date)
     _thread.exit()
 # ====================================================================================
 
