@@ -63,7 +63,7 @@ def auto_reboot():
 
 
 def start(stamp):
-    from tm import timer
+    from timer import timer
     channel = os.environ['original']
     channel = int(channel) if channel.startswith('-100') else channel
     client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
