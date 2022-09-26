@@ -1,1 +1,0 @@
-worker: python digest-creator.py

@@ -63,7 +63,7 @@ def auto_reboot():
 
 
 def start(stamp):
-    from timer import timer
+    from tm import timer
     channel = os.environ['original']
     channel = int(channel) if channel.startswith('-100') else channel
     client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
@@ -71,12 +71,11 @@ def start(stamp):
         @client.on(events.NewMessage(chats=channel))
         async def channel_handler(event):
             try:
-                response = await handler(client, timer, event)
+                response = await handler(client, timer, event.message)
                 if response:
                     coroutines = []
                     for lang in ['ru', 'en']:
-                        text = former(response, lang=lang) if response else None
-                        coroutines.append(sender(int(os.environ[f'{lang}_channel']), text))
+                        coroutines.append(sender(int(os.environ[f'{lang}_channel']), former(response, lang=lang)))
                     await asyncio.gather(*coroutines)
             except IndexError and Exception:
                 await Auth.dev.async_except(event)
@@ -91,8 +90,8 @@ def start(stamp):
 
 
 async def handler(client: TelegramClient, timer, event):
+    groups, scores, response = {'🛡': [], '⚔': []}, {}, {}
     trophies_search = re.search('Scores:(.*)', event.message, flags=re.DOTALL)
-    event, groups, scores, response = event.message, {'🛡': [], '⚔': []}, {}, {}
     date_search = re.search(r'(\d{2}) (.*) 10(\d{2})\nBattle reports:', event.message)
     if date_search and trophies_search:
         response.update({'text': '', 'timestamp': timer(date_search)})
