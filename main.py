@@ -10,7 +10,7 @@ from functions import bold, t_me, italic, time_now, html_link
 from telethon.tl.functions.channels import GetFullChannelRequest
 # =================================================================================================================
 stamp1 = time_now()
-functions.environmental_files()
+functions.environmental_files(python=True)
 gold, castles = {'for': '-', 'lost': '+'}, '(🥔|🐺|🦅|🐉|🦌|🦈|🌑|🐢|☘)'
 Auth = functions.AuthCentre(ID_DEV=-1001312302092, TOKEN=os.environ['TOKEN'], DEV_TOKEN=os.environ.get('DEV_TOKEN'))
 battle_shorts = {
