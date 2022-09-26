@@ -21,6 +21,12 @@ battle_shorts = {
     'were bored - no one': '🛡😴',
     'have stood victorious over the forces': '🛡',
     'successfully managed to break into the castle': '⚔'}
+
+if os.environ.get('local') is None:
+    drive_client = functions.GoogleDrive('google.json')
+    for file in drive_client.files():
+        if file['name'] == f"{os.environ['session']}.session":
+            drive_client.download_file(file['id'], file['name'])
 # =================================================================================================================
 
 
