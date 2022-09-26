@@ -72,7 +72,7 @@ def start(stamp):
         @client.on(events.NewMessage(chats=channel))
         async def channel_handler(event):
             Auth.dev.printer(f'Получен update от канала {channel}')
-            Auth.dev.printer(event)
+            #Auth.dev.printer(event)
             try:
                 response = await handler(client, timer, event.message)
                 if response:
