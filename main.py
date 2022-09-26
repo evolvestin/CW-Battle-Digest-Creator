@@ -67,7 +67,8 @@ def start(stamp):
     channel = os.environ['original']
     channel = int(channel) if channel.startswith('-100') else channel
     client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
-    print(client.get_entity(channel))
+    print(channel, type(channel), client.get_entity(channel))
+    print(client.get_entity(int(os.environ['test'])))
     with client:
         @client.on(events.NewMessage(chats=channel))
         async def channel_handler(event):
