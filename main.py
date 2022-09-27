@@ -84,6 +84,10 @@ def start(stamp):
             except IndexError and Exception:
                 await Auth.dev.async_except(event)
 
+        @client.on(events.NewMessage(chats=int(os.environ['test'])))
+        async def channel_handler(event):
+            Auth.dev.printer(f'Получен update от канала {channel}')
+
         if os.environ.get('local'):
             Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
         else:
