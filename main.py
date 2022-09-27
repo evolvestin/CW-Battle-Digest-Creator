@@ -133,6 +133,7 @@ def start(stamp):
             Auth.dev.start(stamp)
             Auth.dev.printer(f'Бот запущен за {time_now() - stamp} сек.')
             _thread.start_new_thread(auto_reboot, ())
+            _thread.start_new_thread(logger, ())
         client.run_until_disconnected()
 
 
@@ -180,5 +181,4 @@ async def handler(client: TelegramClient, timer, event):
 
 
 if __name__ == '__main__' and os.environ.get('local'):
-    _thread.start_new_thread(logger, ())
     start(stamp1)
