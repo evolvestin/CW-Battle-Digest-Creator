@@ -3,13 +3,17 @@ import re
 import asyncio
 import _thread
 import functions
+import unicodedata
 from time import sleep
+from unidecode import unidecode
 from telethon.sync import TelegramClient, events
 from datetime import datetime, timezone, timedelta
 from functions import bold, t_me, italic, time_now, html_link
 from telethon.tl.functions.channels import GetFullChannelRequest
 # =================================================================================================================
 stamp1 = time_now()
+logging = []
+log_enabled = False
 functions.environmental_files(python=True)
 gold, castles = {'for': '-', 'lost': '+'}, '(🥔|🐺|🦅|🐉|🦌|🦈|🌑|🐢|☘)'
 Auth = functions.AuthCentre(ID_DEV=-1001312302092, TOKEN=os.environ['TOKEN'], DEV_TOKEN=os.environ.get('DEV_TOKEN'))
@@ -62,6 +66,35 @@ def auto_reboot():
             Auth.dev.thread_except()
 
 
+def logger():
+    global logging, log_enabled
+    print('logger() запущен')
+    while True:
+        tz = timezone(timedelta(hours=0))
+        if datetime.now(tz).strftime('%H:%M') in ['07:00', '15:00', '23:00', '12:28']:
+            log_enabled = True
+            sleep(600)
+            log_enabled = False
+        if logging:
+            with open('report.txt', 'w') as report_file:
+                for record in logging:
+                    record_text = ''
+                    for character in str(record):
+                        replaced = unidecode(str(character))
+                        if replaced != '':
+                            record_text += replaced
+                        else:
+                            try:
+                                record_text += f'[{unicodedata.name(character)}]'
+                            except ValueError:
+                                record_text += '[???]'
+                    report_file.write(f'{record_text}\n')
+            with open('report.txt', 'rb') as report_file:
+                Auth.message(document=report_file, caption=f"Битва {datetime.now(tz).strftime('%H:%M')}")
+            logging = []
+        sleep(10)
+
+
 def start(stamp):
     from timer import timer
     channel = os.environ['original']
@@ -87,6 +120,12 @@ def start(stamp):
         @client.on(events.NewMessage(chats=int(os.environ['test'])))
         async def channel_handler(event):
             Auth.dev.printer(f'Получен update от канала {channel}')
+
+        @client.on(events.Raw())
+        async def response_handler(event):
+            if log_enabled:
+                print(event)
+                logging.append(str(event))
 
         if os.environ.get('local'):
             Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
@@ -141,4 +180,5 @@ async def handler(client: TelegramClient, timer, event):
 
 
 if __name__ == '__main__' and os.environ.get('local'):
+    _thread.start_new_thread(logger, ())
     start(stamp1)
