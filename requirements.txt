@@ -1,6 +1,6 @@
 aiogram==2.20
 heroku3==5.1.4
-Telethon==1.23.0
+Telethon==1.25.2
 Unidecode==1.2.0
 pyTelegramBotAPI==4.5.1
 google-api-python-client==1.10.0

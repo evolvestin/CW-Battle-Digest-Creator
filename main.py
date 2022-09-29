@@ -5,8 +5,9 @@ import _thread
 import functions
 import unicodedata
 from time import sleep
+from telebot import types
 from unidecode import unidecode
-from telethon.sync import TelegramClient, events
+from telethon.sync import TelegramClient
 from datetime import datetime, timezone, timedelta
 from functions import bold, t_me, italic, time_now, html_link
 from telethon.tl.functions.channels import GetFullChannelRequest
@@ -15,8 +16,10 @@ stamp1 = time_now()
 logging = []
 log_enabled = False
 functions.environmental_files(python=True)
+list_commands = [types.BotCommand('last_message_id', '0')]
 gold, castles = {'for': '-', 'lost': '+'}, '(🥔|🐺|🦅|🐉|🦌|🦈|🌑|🐢|☘)'
 Auth = functions.AuthCentre(ID_DEV=-1001312302092, TOKEN=os.environ['TOKEN'], DEV_TOKEN=os.environ.get('DEV_TOKEN'))
+bot_commands = Auth.bot.get_my_commands()
 battle_shorts = {
     'were wiped out by a horde': '⚔😎',
     'was a bloody massacre, but the forces': '⚔⚡',
@@ -25,6 +28,12 @@ battle_shorts = {
     'were bored - no one': '🛡😴',
     'have stood victorious over the forces': '🛡',
     'successfully managed to break into the castle': '⚔'}
+
+if bot_commands:
+    last_message_id = int(bot_commands[0].description)
+else:
+    last_message_id = 25000
+    Auth.bot.set_my_commands([types.BotCommand('last_message_id', str(last_message_id))])
 
 if os.environ.get('local') is None:
     drive_client = functions.GoogleDrive('google.json')
@@ -44,6 +53,30 @@ def former(response: dict, lang: str = 'ru'):
     date = datetime.fromtimestamp(response['timestamp'], tz).strftime('%d/%m/%Y %H:%M')
     return f"{bold(f'⛳{title}:')}\n" \
            f"{response['text']}{html_link(response['link'], 'Battle' if lang == 'en' else 'Битва')} {italic(date)}"
+
+
+def start(stamp):
+    from timer import timer
+    channel = os.environ['original']
+    tz, channel = timezone(timedelta(hours=0)), int(channel) if channel.startswith('-100') else channel
+    client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
+    print(channel, type(channel), client.get_entity(channel))
+    with client:
+        if os.environ.get('local'):
+            Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
+        else:
+            Auth.dev.start(stamp)
+            Auth.dev.printer(f'Бот запущен за {time_now() - stamp} сек.')
+            _thread.start_new_thread(auto_reboot, ())
+            _thread.start_new_thread(logger, ())
+
+        while True:
+            now = datetime.now(tz)
+            delay = 10 if now.strftime('%H') in ['07', '15', '23'] else 100
+            delay = 1 if int(now.strftime('%M')) < 30 else delay
+            print('delay', delay)
+            client.loop.run_until_complete(channel_handler(client, timer, channel))
+            sleep(delay)
 
 
 def auto_reboot():
@@ -66,12 +99,32 @@ def auto_reboot():
             Auth.dev.thread_except()
 
 
+async def channel_handler(client: TelegramClient, timer, channel):
+    global last_message_id
+    try:
+        messages = await client.get_messages(channel, ids=[last_message_id + 1], limit=1)
+        for message in messages:
+            if message:
+                last_message_id = message.id
+                Auth.bot.set_my_commands([types.BotCommand('last_message_id', str(last_message_id))])
+                response = await handler(client, timer, message)
+                if response:
+                    coroutines = []
+                    for lang in ['ru', 'en']:
+                        coroutines.append(sender(int(os.environ[f'{lang}_channel']), former(response, lang=lang)))
+                    await asyncio.gather(*coroutines)
+            else:
+                Auth.dev.printer(f"Нет сообщения {t_me}{re.sub('-100', '', str(channel))}/{last_message_id + 1}")
+    except IndexError and Exception:
+        await Auth.dev.executive(None)
+
+
 def logger():
     global logging, log_enabled
     print('logger() запущен')
     while True:
         tz = timezone(timedelta(hours=0))
-        if datetime.now(tz).strftime('%H:%M') in ['07:00', '15:00', '23:00', '12:28']:
+        if datetime.now(tz).strftime('%H:%M') in ['07:00', '15:00', '23:00']:
             log_enabled = True
             sleep(600)
             log_enabled = False
@@ -93,48 +146,6 @@ def logger():
                 Auth.message(document=report_file, caption=f"Битва {datetime.now(tz).strftime('%H:%M')}")
             logging = []
         sleep(10)
-
-
-def start(stamp):
-    from timer import timer
-    channel = os.environ['original']
-    channel = int(channel) if channel.startswith('-100') else channel
-    client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
-    print(channel, type(channel), client.get_entity(channel))
-    print(client.get_entity(int(os.environ['test'])))
-    with client:
-        @client.on(events.NewMessage(chats=channel))
-        async def channel_handler(event):
-            Auth.dev.printer(f'Получен update от канала {channel}')
-            #Auth.dev.printer(event)
-            try:
-                response = await handler(client, timer, event.message)
-                if response:
-                    coroutines = []
-                    for lang in ['ru', 'en']:
-                        coroutines.append(sender(int(os.environ[f'{lang}_channel']), former(response, lang=lang)))
-                    await asyncio.gather(*coroutines)
-            except IndexError and Exception:
-                await Auth.dev.async_except(event)
-
-        @client.on(events.NewMessage(chats=int(os.environ['test'])))
-        async def channel_handler(event):
-            Auth.dev.printer(f'Получен update от канала {channel}')
-
-        @client.on(events.Raw())
-        async def response_handler(event):
-            if log_enabled:
-                print(event)
-                logging.append(str(event))
-
-        if os.environ.get('local'):
-            Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
-        else:
-            Auth.dev.start(stamp)
-            Auth.dev.printer(f'Бот запущен за {time_now() - stamp} сек.')
-            _thread.start_new_thread(auto_reboot, ())
-            _thread.start_new_thread(logger, ())
-        client.run_until_disconnected()
 
 
 async def handler(client: TelegramClient, timer, event):
