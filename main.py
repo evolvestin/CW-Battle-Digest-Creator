@@ -58,7 +58,8 @@ def former(response: dict, lang: str = 'ru'):
 def start(stamp):
     from timer import timer
     channel = os.environ['original']
-    tz, channel = timezone(timedelta(hours=0)), int(channel) if channel.startswith('-100') else channel
+    channel = int(channel) if channel.startswith('-100') else channel
+    tz, channel_link = timezone(timedelta(hours=0)), f"{t_me}{re.sub('-100', '', str(channel))}/"
     client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
     print(channel, type(channel), client.get_entity(channel))
     with client:
@@ -74,7 +75,7 @@ def start(stamp):
             now, delay = datetime.now(tz), 0.4
             if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
                 delay = 2 if 0 <= int(now.strftime('%M')) < 3 or 10 <= int(now.strftime('%M')) < 20 else delay
-                client.loop.run_until_complete(channel_handler(client, timer, channel))
+                client.loop.run_until_complete(channel_handler(client, timer, channel, channel_link))
             sleep(delay)
 
 
@@ -98,10 +99,10 @@ def auto_reboot():
             Auth.dev.thread_except()
 
 
-async def channel_handler(client: TelegramClient, timer, channel):
+async def channel_handler(client: TelegramClient, timer, channel, channel_link: str):
     global last_message_id
     try:
-        print('проверяем', last_message_id + 1)
+        print(f'Проверяем {channel_link}{last_message_id + 1}')
         messages = await client.get_messages(channel, ids=[last_message_id + 1], limit=1)
         for message in messages:
             if message:
@@ -114,7 +115,7 @@ async def channel_handler(client: TelegramClient, timer, channel):
                         coroutines.append(sender(int(os.environ[f'{lang}_channel']), former(response, lang=lang)))
                     await asyncio.gather(*coroutines)
             else:
-                Auth.dev.printer(f"Нет сообщения {t_me}{re.sub('-100', '', str(channel))}/{last_message_id + 1}")
+                Auth.dev.printer(f'Нет сообщения {channel_link}{last_message_id + 1}')
     except IndexError and Exception:
         Auth.dev.executive(None)
 
