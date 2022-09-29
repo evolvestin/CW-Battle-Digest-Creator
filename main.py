@@ -72,7 +72,6 @@ def start(stamp):
 
         while True:
             now, delay = datetime.now(tz), 0.4
-            now = datetime.fromisoformat('2022-09-29 07:10:00')
             if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
                 delay = 2 if 0 <= int(now.strftime('%M')) < 3 or 10 <= int(now.strftime('%M')) < 20 else delay
                 client.loop.run_until_complete(channel_handler(client, timer, channel))
