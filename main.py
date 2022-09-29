@@ -71,11 +71,11 @@ def start(stamp):
             _thread.start_new_thread(logger, ())
 
         while True:
-            now = datetime.now(tz)
-            delay = 10 if now.strftime('%H') in ['07', '15', '23'] else 100
-            delay = 1 if int(now.strftime('%M')) < 30 else delay
-            print('delay', delay)
-            client.loop.run_until_complete(channel_handler(client, timer, channel))
+            now, delay = datetime.now(tz), 0.4
+            now = datetime.fromisoformat('2022-09-29 07:10:00')
+            if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
+                delay = 2 if 0 <= int(now.strftime('%M')) < 3 or 10 <= int(now.strftime('%M')) < 20 else delay
+                client.loop.run_until_complete(channel_handler(client, timer, channel))
             sleep(delay)
 
 
@@ -102,6 +102,7 @@ def auto_reboot():
 async def channel_handler(client: TelegramClient, timer, channel):
     global last_message_id
     try:
+        print('проверяем', last_message_id + 1)
         messages = await client.get_messages(channel, ids=[last_message_id + 1], limit=1)
         for message in messages:
             if message:
@@ -116,35 +117,38 @@ async def channel_handler(client: TelegramClient, timer, channel):
             else:
                 Auth.dev.printer(f"Нет сообщения {t_me}{re.sub('-100', '', str(channel))}/{last_message_id + 1}")
     except IndexError and Exception:
-        await Auth.dev.executive(None)
+        Auth.dev.executive(None)
 
 
 def logger():
     global logging, log_enabled
     print('logger() запущен')
     while True:
-        tz = timezone(timedelta(hours=0))
-        if datetime.now(tz).strftime('%H:%M') in ['07:00', '15:00', '23:00']:
-            log_enabled = True
-            sleep(600)
-            log_enabled = False
-        if logging:
-            with open('report.txt', 'w') as report_file:
-                for record in logging:
-                    record_text = ''
-                    for character in str(record):
-                        replaced = unidecode(str(character))
-                        if replaced != '':
-                            record_text += replaced
-                        else:
-                            try:
-                                record_text += f'[{unicodedata.name(character)}]'
-                            except ValueError:
-                                record_text += '[???]'
-                    report_file.write(f'{record_text}\n')
-            with open('report.txt', 'rb') as report_file:
-                Auth.message(document=report_file, caption=f"Битва {datetime.now(tz).strftime('%H:%M')}")
-            logging = []
+        try:
+            tz = timezone(timedelta(hours=0))
+            if datetime.now(tz).strftime('%H:%M') in ['07:00', '15:00', '23:00']:
+                log_enabled = True
+                sleep(600)
+                log_enabled = False
+            if logging:
+                with open('report.txt', 'w') as report_file:
+                    for record in logging:
+                        record_text = ''
+                        for character in str(record):
+                            replaced = unidecode(str(character))
+                            if replaced != '':
+                                record_text += replaced
+                            else:
+                                try:
+                                    record_text += f'[{unicodedata.name(character)}]'
+                                except ValueError:
+                                    record_text += '[???]'
+                        report_file.write(f'{record_text}\n')
+                with open('report.txt', 'rb') as report_file:
+                    Auth.message(document=report_file, caption=f"Битва {datetime.now(tz).strftime('%H:%M')}")
+                logging = []
+        except IndexError and Exception:
+            Auth.dev.thread_except()
         sleep(10)
 
 
