@@ -72,9 +72,9 @@ def start(stamp):
             _thread.start_new_thread(logger, ())
 
         while True:
-            now, delay = datetime.now(tz), 0.4
+            now, delay = datetime.now(tz), 0.1
             if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
-                delay = 2 if 0 <= int(now.strftime('%M')) < 3 or 10 <= int(now.strftime('%M')) < 20 else delay
+                delay = 5 if 2 <= int(now.strftime('%M')) < 6 else 60
                 client.loop.run_until_complete(channel_handler(client, timer, channel, channel_link))
             sleep(delay)
 
