@@ -55,50 +55,6 @@ def former(response: dict, lang: str = 'ru'):
            f"{response['text']}{html_link(response['link'], 'Battle' if lang == 'en' else 'Битва')} {italic(date)}"
 
 
-def start(stamp):
-    from timer import timer
-    channel = os.environ['original']
-    channel = int(channel) if channel.startswith('-100') else channel
-    tz, channel_link = timezone(timedelta(hours=0)), f"{t_me}{re.sub('-100', '', str(channel))}/"
-    client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
-    print(channel, type(channel), client.get_entity(channel))
-    with client:
-        if os.environ.get('local'):
-            Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
-        else:
-            Auth.dev.start(stamp)
-            Auth.dev.printer(f'Бот запущен за {time_now() - stamp} сек.')
-            _thread.start_new_thread(auto_reboot, ())
-            _thread.start_new_thread(logger, ())
-
-        while True:
-            now, delay = datetime.now(tz), 0.1
-            if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
-                delay = 5 if 2 <= int(now.strftime('%M')) < 6 else 60
-                client.loop.run_until_complete(channel_handler(client, timer, channel, channel_link))
-            sleep(delay)
-
-
-def auto_reboot():
-    reboot = None
-    tz = timezone(timedelta(hours=3))
-    while True:
-        try:
-            sleep(30)
-            date = datetime.now(tz)
-            if date.strftime('%H') == '23' and date.strftime('%M') == '57':
-                reboot = True
-                while date.strftime('%M') == '57':
-                    sleep(1)
-                    date = datetime.now(tz)
-            if reboot:
-                reboot = None
-                text, _ = Auth.logs.reboot()
-                Auth.dev.printer(text)
-        except IndexError and Exception:
-            Auth.dev.thread_except()
-
-
 async def channel_handler(client: TelegramClient, timer, channel, channel_link: str):
     global last_message_id
     try:
@@ -118,6 +74,29 @@ async def channel_handler(client: TelegramClient, timer, channel, channel_link: 
                 Auth.dev.printer(f'Нет сообщения {channel_link}{last_message_id + 1}')
     except IndexError and Exception:
         Auth.dev.executive(None)
+
+
+def start(stamp):
+    from timer import timer
+    channel = os.environ['original']
+    channel = int(channel) if channel.startswith('-100') else channel
+    tz, channel_link = timezone(timedelta(hours=0)), f"{t_me}{re.sub('-100', '', str(channel))}/"
+    client = TelegramClient(os.environ['session'], int(os.environ['api_id']), os.environ['api_hash']).start()
+    print(channel, type(channel), client.get_entity(channel))
+    with client:
+        if os.environ.get('local'):
+            Auth.dev.printer(f'Запуск бота локально за {time_now() - stamp} сек.')
+        else:
+            Auth.dev.start(stamp)
+            Auth.dev.printer(f'Бот запущен за {time_now() - stamp} сек.')
+            _thread.start_new_thread(logger, ())
+
+        while True:
+            now, delay = datetime.now(tz), 0.1
+            if now.strftime('%H') in ['07', '15', '23'] and int(now.strftime('%M')) < 30:
+                delay = 3 if 2 <= int(now.strftime('%M')) < 6 else 60
+                client.loop.run_until_complete(channel_handler(client, timer, channel, channel_link))
+            sleep(delay)
 
 
 def logger():
