@@ -598,30 +598,6 @@ class AuthCentre:
                 head += f'\n{space}👤 {head_text}'
             return head, name, username, space, update
 
-        def reboot(self, dispatcher=None):
-            def heroku(_delay, connection):
-                time.sleep(4)
-                if dispatcher:
-                    dispatcher.stop_polling()
-                    time.sleep(_delay+1)
-                for app in connection.apps():
-                    for dyno in app.dynos():
-                        dyno.restart()
-
-            if os.environ.get('api'):
-                postfix = 'секунд'
-                delay = self.delay+5
-                if delay < 10 or 20 < delay < 110 or delay > 120:
-                    postfix += 'у' if str(delay)[-1] in ['1'] else ''
-                    postfix += 'ы' if str(delay)[-1] in ['2', '3', '4'] else ''
-
-                connect = heroku3.from_key(os.environ['api'])
-                _thread.start_new_thread(heroku, (self.delay, connect,))
-                text, log_text = f'✅ Перезапуск через {delay} {postfix}.', '[Успешно]'
-            else:
-                text, log_text = '❌ Переменная окружения не установлена.', '[Неудачно]'
-            return bold(text), f' {bold(log_text)}'
-
         def text(self):
             def links(array, title_one='', title_many='', sep='\n'):
                 text, count, enumerated = '', 0, []
@@ -1049,12 +1025,6 @@ class AuthCentre:
             self.app_name = copy(self.username)
             self.bot_link = f'{t_me}{self.username}'
             self.host = 'server' if os.environ.get('server') else 'local'
-
-            if os.environ.get('api'):
-                for app in heroku3.from_key(os.environ['api']).apps():
-                    self.app_name = re.sub('-first|-second', '', app.name, 1)
-                    self.host = 'One' if app.name.endswith('first') else self.host
-                    self.host = 'Two' if app.name.endswith('second') else self.host
 
         def header(self, text=None):
             text = f':\n{text}' if text else ''
